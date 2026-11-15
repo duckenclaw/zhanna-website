@@ -1,0 +1,17 @@
+/* Colours come from src/lib/cells/config.ts (set as CSS variables in +layout.svelte). */
+
+html,
+body {
+	margin: 0;
+	height: 100%;
+	background: var(--dark);
+	color: var(--label);
+	font-family: 'EB Garamond', Georgia, serif;
+	-webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
