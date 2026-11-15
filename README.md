@@ -1,19 +1,19 @@
 # Zhanna Dudnik — personal website
 
-The personal website of **Zhanna Dudnik**: portfolio, CV, artworks (*prace artystyczne*) and 3D models (*3D modele*).
+The personal website of **Zhanna Dudnik**: portfolio, CV, artworks (_prace artystyczne_) and 3D models (_3D modele_).
 
 The home page is a living field of Voronoi "cells". They drift slowly, a cell swells when you hover it and pushes its neighbours in a ripple, and clicking a link cell grows it to fill the screen while the next page fades in. On phones and other tall screens the trail of link cells runs downward.
 
 ## Stack
 
-| Piece | Why |
-| --- | --- |
-| [SvelteKit](https://svelte.dev/docs/kit) (Svelte 5, TypeScript) | Components read almost like plain HTML/SVG, page transitions are built in, and the site builds to static files. |
-| Plain SVG | Every cell is a real vector `<path>`: sharp at any size, styled with CSS, accessible links. |
-| [d3-delaunay](https://github.com/d3/d3-delaunay) | Computes the Voronoi diagram from a list of seed points (fast enough to redo every frame). |
-| A small hand-written spring system | Moves the seed points. No animation library, so every motion constant is in one place. |
-| [EB Garamond](https://fonts.google.com/specimen/EB+Garamond) via `@fontsource` | Self-hosted serif for the labels. |
-| `@sveltejs/adapter-static` | Output is a folder of static files, so it can go on any static host. |
+| Piece                                                                          | Why                                                                                                             |
+| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| [SvelteKit](https://svelte.dev/docs/kit) (Svelte 5, TypeScript)                | Components read almost like plain HTML/SVG, page transitions are built in, and the site builds to static files. |
+| Plain SVG                                                                      | Every cell is a real vector `<path>`: sharp at any size, styled with CSS, accessible links.                     |
+| [d3-delaunay](https://github.com/d3/d3-delaunay)                               | Computes the Voronoi diagram from a list of seed points (fast enough to redo every frame).                      |
+| A small hand-written spring system                                             | Moves the seed points. No animation library, so every motion constant is in one place.                          |
+| [EB Garamond](https://fonts.google.com/specimen/EB+Garamond) via `@fontsource` | Self-hosted serif for the labels.                                                                               |
+| `@sveltejs/adapter-static`                                                     | Output is a folder of static files, so it can go on any static host.                                            |
 
 ## How the cell field works
 
