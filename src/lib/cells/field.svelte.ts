@@ -4,6 +4,7 @@ import {
 	colors,
 	cornerRadius,
 	layouts,
+	lines,
 	openTransition,
 	physics,
 	portraitBelowAspect,
@@ -13,6 +14,7 @@ import {
 import {
 	centroid,
 	easeInOutCubic,
+	insetPolygon,
 	linePath,
 	rayToRect,
 	resample,
@@ -241,17 +243,22 @@ export class CellField {
 			this.height + margin
 		]);
 		const radius = cornerRadius * this.spacing;
+		// Each cell gives up half a line on every side; the line is the gap left over.
+		const halfLine = lines.width / 2;
+		const bulge = halfLine * lines.taper;
 
 		const cells: RenderCell[] = [];
 		this.polygons = [];
 		for (let i = 0; i < this.seeds.length; i++) {
 			const raw = voronoi.cellPolygon(i);
 			if (!raw) continue;
-			const polygon = raw.slice(0, -1) as Point[]; // last point repeats the first
+			// The last point repeats the first.
+			const polygon = insetPolygon(raw.slice(0, -1) as Point[], halfLine);
 			this.polygons[i] = polygon;
 			const [cx, cy] = centroid(polygon);
 			const s = this.seeds[i];
-			cells.push({ id: i, kind: s.kind, d: roundedPath(polygon, radius), cx, cy, link: s.link });
+			const d = roundedPath(polygon, radius, bulge);
+			cells.push({ id: i, kind: s.kind, d, cx, cy, link: s.link });
 		}
 		this.cells = cells;
 	}

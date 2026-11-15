@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { colors, links, strokeWidth, title, type LinkConfig } from './config';
+	import { colors, links, lines, title, type LinkConfig } from './config';
 	import { CellField, fills } from './field.svelte';
 
 	const field = new CellField();
@@ -18,15 +18,42 @@
 		};
 	});
 
+	/** A finger sliding further than this (px) is a drag, not a tap. */
+	const TAP_SLOP = 10;
+
+	/** Where the current press started, and whether it has turned into a drag. */
+	let press: { x: number; y: number; dragged: boolean } | null = null;
+
 	function onPointer(event: PointerEvent) {
 		const box = host.getBoundingClientRect();
 		field.hoverAt(event.clientX - box.left, event.clientY - box.top);
+	}
+
+	function onPointerDown(event: PointerEvent) {
+		press = { x: event.clientX, y: event.clientY, dragged: false };
+		onPointer(event);
+	}
+
+	function onPointerMove(event: PointerEvent) {
+		if (press && Math.hypot(event.clientX - press.x, event.clientY - press.y) > TAP_SLOP) {
+			press.dragged = true;
+		}
+		onPointer(event);
+	}
+
+	/** Finger lifted, pointer gone, or the browser took over the gesture. */
+	function onPointerEnd() {
+		field.hover(null);
 	}
 
 	function onLinkClick(event: MouseEvent, link: LinkConfig) {
 		// Let cmd/ctrl/shift-click open a new tab as usual.
 		if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
 		event.preventDefault();
+		// Sliding a finger around and lifting it over a link only explores; a tap opens.
+		const wasDrag = press?.dragged;
+		press = null;
+		if (wasDrag) return;
 		field.open(link);
 	}
 
@@ -45,18 +72,20 @@
 	style:--label={colors.label}
 	style:--title={colors.title}
 	style:--accent={colors.accent}
+	style:--focus-width="{lines.width * 2}px"
 >
 	{#if field.width}
 		<svg
 			viewBox="0 0 {field.width} {field.height}"
 			class:opening={field.opening}
-			onpointermove={onPointer}
-			onpointerdown={onPointer}
-			onpointerleave={() => field.hover(null)}
+			onpointermove={onPointerMove}
+			onpointerdown={onPointerDown}
+			onpointerleave={onPointerEnd}
+			onpointercancel={onPointerEnd}
 			role="presentation"
 		>
 			<!-- Plain cells (dark and pink trail). -->
-			<g class="cells" stroke-width={strokeWidth}>
+			<g class="cells">
 				{#each field.cells as cell (cell.id)}
 					{#if !cell.link}
 						<path d={cell.d} fill={fills[cell.kind]} />
@@ -81,10 +110,10 @@
 			<!-- Text on top of every cell; ignores the mouse so clicks reach the cell. -->
 			<g class="labels" font-size={field.labelSize} aria-hidden="true">
 				{#each linkCells as cell (cell.id)}
-					{@const lines = cell.link!.label}
+					{@const labelLines = cell.link!.label}
 					<text class="label">
-						{#each lines as line, i (i)}
-							<tspan x={cell.cx} y={lineY(cell.cy, i, lines.length)}>{line}</tspan>
+						{#each labelLines as line, i (i)}
+							<tspan x={cell.cx} y={lineY(cell.cy, i, labelLines.length)}>{line}</tspan>
 						{/each}
 					</text>
 				{/each}
@@ -99,7 +128,7 @@
 
 			<!-- The clicked cell growing over the screen. -->
 			{#if field.openingPath}
-				<path class="morph" d={field.openingPath} fill={fills.link} stroke-width={strokeWidth} />
+				<path class="morph" d={field.openingPath} fill={fills.link} />
 			{/if}
 		</svg>
 	{/if}
@@ -121,7 +150,9 @@
 		position: fixed;
 		inset: 0;
 		overflow: hidden;
-		touch-action: manipulation;
+		/* Keep finger drags for the cells instead of panning or zooming; the home page
+		   never scrolls. Touch then works like a mouse hover while the finger is down. */
+		touch-action: none;
 	}
 
 	svg {
@@ -129,12 +160,8 @@
 		width: 100%;
 		height: 100%;
 		-webkit-tap-highlight-color: transparent;
-	}
-
-	.cells,
-	.morph {
-		stroke: var(--stroke);
-		stroke-linejoin: round;
+		/* The lines between cells are this background showing through the gaps. */
+		background: var(--stroke);
 	}
 
 	a {
@@ -142,9 +169,11 @@
 		cursor: pointer;
 	}
 
-	/* Keyboard focus: a thicker outline on the focused cell. */
+	/* Keyboard focus: an outline in the line colour around the focused cell. */
 	a:focus-visible path {
-		stroke-width: 5;
+		stroke: var(--stroke);
+		stroke-width: var(--focus-width);
+		stroke-linejoin: round;
 	}
 
 	.labels {

@@ -2,25 +2,25 @@ export type Point = [number, number];
 export type Rect = [x0: number, y0: number, x1: number, y1: number];
 
 /**
- * SVG path for a polygon with rounded corners. Each corner is cut back by
- * `radius` (or less on short edges) and replaced with a smooth curve.
+ * SVG path for a polygon with rounded corners and slightly bowed edges.
+ *
+ * Each corner is cut back by `radius` (or less on short edges) and replaced
+ * with a smooth curve. Each edge in between bulges outward so its middle sits
+ * `bulge` px further out than its ends; two neighbouring cells bulging towards
+ * each other make the line between them thinner in the middle.
  */
-export function roundedPath(polygon: Point[], radius: number): string {
+export function roundedPath(polygon: Point[], radius: number, bulge = 0): string {
 	const n = polygon.length;
 	if (n < 3) return '';
-	if (radius <= 0) return 'M' + polygon.map(([x, y]) => `${f(x)},${f(y)}`).join('L') + 'Z';
+	const center = centroid(polygon);
 
-	let d = '';
-	for (let i = 0; i < n; i++) {
+	// Where each corner's curve starts (on the incoming edge) and ends (on the outgoing edge).
+	const corners = polygon.map((corner, i) => {
 		const prev = polygon[(i - 1 + n) % n];
-		const corner = polygon[i];
 		const next = polygon[(i + 1) % n];
-
-		const inLen = Math.hypot(corner[0] - prev[0], corner[1] - prev[1]);
-		const outLen = Math.hypot(next[0] - corner[0], next[1] - corner[1]);
-		const r = Math.min(radius, inLen / 2, outLen / 2);
-
-		// Where the curve starts (on the incoming edge) and ends (on the outgoing edge).
+		const inLen = Math.hypot(corner[0] - prev[0], corner[1] - prev[1]) || 1;
+		const outLen = Math.hypot(next[0] - corner[0], next[1] - corner[1]) || 1;
+		const r = Math.max(0, Math.min(radius, inLen / 2, outLen / 2));
 		const start: Point = [
 			corner[0] - ((corner[0] - prev[0]) / inLen) * r,
 			corner[1] - ((corner[1] - prev[1]) / inLen) * r
@@ -29,11 +29,70 @@ export function roundedPath(polygon: Point[], radius: number): string {
 			corner[0] + ((next[0] - corner[0]) / outLen) * r,
 			corner[1] + ((next[1] - corner[1]) / outLen) * r
 		];
+		return { corner, start, end };
+	});
 
-		d += `${i === 0 ? 'M' : 'L'}${f(start[0])},${f(start[1])}`;
-		d += `Q${f(corner[0])},${f(corner[1])} ${f(end[0])},${f(end[1])}`;
+	let d = `M${pt(corners[0].start)}`;
+	for (let i = 0; i < n; i++) {
+		const { corner, end } = corners[i];
+		const nextStart = corners[(i + 1) % n].start;
+		d += `Q${pt(corner)} ${pt(end)}`;
+
+		// Edge from this corner to the next one.
+		const len = Math.hypot(nextStart[0] - end[0], nextStart[1] - end[1]);
+		if (bulge > 0 && len > 1) {
+			const mid: Point = [(end[0] + nextStart[0]) / 2, (end[1] + nextStart[1]) / 2];
+			let nx = -(nextStart[1] - end[1]) / len;
+			let ny = (nextStart[0] - end[0]) / len;
+			// Point the normal away from the cell centre.
+			if ((mid[0] - center[0]) * nx + (mid[1] - center[1]) * ny < 0) {
+				nx = -nx;
+				ny = -ny;
+			}
+			// A quadratic curve's middle travels half as far as its control point.
+			// Short edges bulge less so they don't kink.
+			const offset = 2 * bulge * Math.min(1, len / (20 * bulge));
+			d += `Q${pt([mid[0] + nx * offset, mid[1] + ny * offset])} ${pt(nextStart)}`;
+		} else {
+			d += `L${pt(nextStart)}`;
+		}
 	}
 	return d + 'Z';
+}
+
+/**
+ * Shrink a convex polygon by moving every edge `distance` px towards the centre.
+ * Used to open up the gaps between cells, which become the lines.
+ */
+export function insetPolygon(polygon: Point[], distance: number): Point[] {
+	const [cx, cy] = centroid(polygon);
+
+	// Each edge as a line moved inward: a point on it plus its direction.
+	const edges: { x: number; y: number; dx: number; dy: number }[] = [];
+	for (let i = 0; i < polygon.length; i++) {
+		const [ax, ay] = polygon[i];
+		const [bx, by] = polygon[(i + 1) % polygon.length];
+		const len = Math.hypot(bx - ax, by - ay);
+		if (len < 1e-6) continue;
+		const dx = (bx - ax) / len;
+		const dy = (by - ay) / len;
+		let nx = -dy;
+		let ny = dx;
+		if ((cx - ax) * nx + (cy - ay) * ny < 0) {
+			nx = -nx;
+			ny = -ny;
+		}
+		edges.push({ x: ax + nx * distance, y: ay + ny * distance, dx, dy });
+	}
+
+	// New corners are where neighbouring moved edges cross.
+	return edges.map((b, i): Point => {
+		const a = edges[(i - 1 + edges.length) % edges.length];
+		const cross = a.dx * b.dy - a.dy * b.dx;
+		if (Math.abs(cross) < 1e-6) return [b.x, b.y]; // parallel edges
+		const t = ((b.x - a.x) * b.dy - (b.y - a.y) * b.dx) / cross;
+		return [a.x + a.dx * t, a.y + a.dy * t];
+	});
 }
 
 /** SVG path through the points with straight lines. */
@@ -100,3 +159,5 @@ export const easeInOutCubic = (t: number) =>
 
 /** Round to 0.1px to keep path strings short. */
 const f = (n: number) => Math.round(n * 10) / 10;
+
+const pt = ([x, y]: Point) => `${f(x)},${f(y)}`;

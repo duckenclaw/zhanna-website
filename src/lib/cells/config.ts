@@ -25,10 +25,21 @@ export const colors = {
 	title: '#ff1f5a'
 };
 
-/** Outline width in px. */
-export const strokeWidth = 2.5;
+/**
+ * Lines between cells. They are not strokes: the background is the line colour
+ * and every cell is shrunk a little, so the lines are the gaps in between.
+ */
+export const lines = {
+	/** Thickness in px at the ends of each line, next to the junctions. */
+	width: 3,
+	/** How much thinner a line gets towards its middle: 0 = even, 0.3 = 30% thinner. */
+	taper: 0.3
+};
 
-/** Corner rounding, as a fraction of the average cell size. 0 = sharp corners. */
+/**
+ * Corner rounding, as a fraction of the average cell size. 0 = sharp corners.
+ * Bigger values give softer cells and heavier blobs where lines meet.
+ */
 export const cornerRadius = 0.07;
 
 // ---------------------------------------------------------------------------
@@ -103,36 +114,39 @@ export const layouts: { landscape: Layout; portrait: Layout } = {
 		]
 	},
 
-	// Tall screens (phones): name at the top, both branches run downward,
-	// kept apart by a column of dark cells down the middle.
+	// Tall screens (phones): name at the top, then one pink ribbon zigzagging down.
+	// Each row has a pink cell and, on the other side, a dark cell tucked into the
+	// bend. Pinks sit nearer the middle than the darks, so each pink touches the
+	// next one diagonally and the ribbon stays connected.
 	portrait: {
 		cellSize: 0.19,
-		labelSize: 0.13,
+		labelSize: 0.14,
 		anchors: [
-			{ x: 0.5, y: 0.1, kind: 'name', inflate: 0.2 },
+			{ x: 0.5, y: 0.085, kind: 'name', inflate: 0.2 },
 
-			{ x: 0.24, y: 0.235, kind: 'link', link: links.portfolio },
-			{ x: 0.17, y: 0.37, kind: 'accent' },
-			{ x: 0.27, y: 0.5, kind: 'link', link: links.art, inflate: 0.3 },
-			{ x: 0.17, y: 0.63, kind: 'accent' },
-			{ x: 0.26, y: 0.76, kind: 'accent' },
-			{ x: 0.16, y: 0.89, kind: 'accent' },
-			{ x: 0.25, y: 1.02, kind: 'accent' },
+			{ x: 0.65, y: 0.21, kind: 'link', link: links.cv },
+			{ x: 0.2, y: 0.21, kind: 'dark' },
 
-			{ x: 0.76, y: 0.25, kind: 'link', link: links.cv },
-			{ x: 0.83, y: 0.385, kind: 'accent' },
-			{ x: 0.73, y: 0.52, kind: 'link', link: links.models },
-			{ x: 0.83, y: 0.65, kind: 'accent' },
-			{ x: 0.74, y: 0.78, kind: 'accent' },
-			{ x: 0.84, y: 0.91, kind: 'accent' },
-			{ x: 0.75, y: 1.04, kind: 'accent' },
+			{ x: 0.35, y: 0.33, kind: 'link', link: links.portfolio },
+			{ x: 0.8, y: 0.33, kind: 'dark' },
 
-			{ x: 0.5, y: 0.3, kind: 'dark' },
-			{ x: 0.5, y: 0.44, kind: 'dark' },
-			{ x: 0.5, y: 0.58, kind: 'dark' },
-			{ x: 0.5, y: 0.72, kind: 'dark' },
-			{ x: 0.5, y: 0.86, kind: 'dark' },
-			{ x: 0.5, y: 1.0, kind: 'dark' }
+			{ x: 0.66, y: 0.45, kind: 'link', link: links.models },
+			{ x: 0.21, y: 0.45, kind: 'dark' },
+
+			{ x: 0.34, y: 0.57, kind: 'link', link: links.art, inflate: 0.2 },
+			{ x: 0.79, y: 0.57, kind: 'dark' },
+
+			{ x: 0.64, y: 0.69, kind: 'accent' },
+			{ x: 0.2, y: 0.69, kind: 'dark' },
+
+			{ x: 0.36, y: 0.81, kind: 'accent' },
+			{ x: 0.8, y: 0.81, kind: 'dark' },
+
+			{ x: 0.65, y: 0.93, kind: 'accent' },
+			{ x: 0.21, y: 0.93, kind: 'dark' },
+
+			{ x: 0.35, y: 1.05, kind: 'accent' },
+			{ x: 0.79, y: 1.05, kind: 'dark' }
 		]
 	}
 };
